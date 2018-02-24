@@ -1,0 +1,13 @@
+logs
+target
+/.idea
+/.idea_modules
+/.classpath
+/.project
+/.settings
+/.vscode
+/RUNNING_PID
+node_modules
+dist
+yarn-error.log
+*.log
