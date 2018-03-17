@@ -7,6 +7,7 @@ import { Form, Input, Radio, Select, Button, Upload, Icon, Modal } from 'antd';
 const FormItem = Form.Item;
 const Option = Select.Option;
 import { Ajax } from '../../services/utils/Ajax';
+import { CategoryService } from '../../services/CategoryService';
 import 'antd/dist/antd.css'; 
 
 class ArticleFormInner extends React.Component {
@@ -17,6 +18,7 @@ class ArticleFormInner extends React.Component {
 		  titleImageList: [],
 		  titleImagePreviewVisible: false,
 		  titleImagePreviewImage: '',
+		  categories: [],
 		};
 	}
 
@@ -24,6 +26,9 @@ class ArticleFormInner extends React.Component {
 
 		// To disabled submit button at the beginning.
 		//this.props.form.validateFields();
+
+		this.loadCategories();
+
 	}
 	
 	handleSubmit(e) {
@@ -36,7 +41,7 @@ class ArticleFormInner extends React.Component {
 					return;
 				}
 				EventManager.emit('get_editor_content', (content) => {
-					const titleImage = self.state.titleImageList[0].response[0].url;
+					const titleImageId = self.state.titleImageList[0].response[0].id;
 					const data = {
 						title: values.title,
 						category: values.category,
@@ -44,11 +49,17 @@ class ArticleFormInner extends React.Component {
 						isPublished: values.is_published,
 						isReviewed: values.is_reviewed,
 						content: content,
-						titleImage: titleImage,
+						titleImageId: titleImageId,
 					}
-					console.log(data);
+					
 					Ajax.post(self.props.submitEndPoint, data, function(msg){
 						console.log(msg);
+						if (msg.status === 200) {
+							if (msg.data && msg.data.success) {
+								alert("success");
+								window.location.reload();
+							}
+						}
 					});
 				})
 			}
@@ -85,15 +96,26 @@ class ArticleFormInner extends React.Component {
 		
 	} 
 
+	loadCategories() {
+		const self = this;
+		CategoryService.getAll(function(resp) {
+			if (resp.data && resp.data.categories){
+				self.setState({categories: resp.data.categories});
+			}
+		});
+	}
+
 	render() {
-		const { getFieldDecorator, getFieldsError, getFieldError, isFieldTouched } = this.props.form;
-		const { titleImageList, titleImagePreviewVisible, titleImagePreviewImage } = this.state;
+		const { getFieldDecorator, getFieldsError, getFieldError, isFieldTouched, categoryList } = this.props.form;
+		const { titleImageList, titleImagePreviewVisible, titleImagePreviewImage, categories} = this.state;
+		
 		const heroImageUploadButton = (
 			<div>
 			  <Icon type="plus" />
 			  <div className="ant-upload-text">Upload</div>
 			</div>
-		  );
+		);
+
 		return (
 			
 			<Form className='form' onSubmit={this.handleSubmit.bind(this)}>
@@ -117,15 +139,14 @@ class ArticleFormInner extends React.Component {
 				</FormItem>
 				<FormItem>
 					{getFieldDecorator('category', {
-						initialValue: "travel",
 						rules: [{
 							required: true, message: 'Please select a category'
 						}],
 					})(
 						<Select style={{ width: 120 }} >
-							<Option value="travel">旅游</Option>
-							<Option value="blog">博客</Option>
-							<Option value="shopping">淘品</Option>
+							{this.state.categories.map(function(c){
+								return <Option key={c.id}>{c.name}</Option>;
+							})}
 						</Select>
 					)}
 				</FormItem>
@@ -188,10 +209,6 @@ ArticleFormInner.propTypes = {
 };
 
 ArticleFormInner.defaultProps = {
-	editorServerUrl: 'http://localhost:9000/api/admin/editor',
-	imageUploadUrl: 'http://localhost:9000/api/admin/image',
-	submitEndPoint: 'http://localhost:9000/api/admin/post/insert',
-
 };
 
 ArticleForm = Form.create({})(ArticleFormInner);
